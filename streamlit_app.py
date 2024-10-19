@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import socket
 
 def is_private_ip(ip):
-    # Function to check if an IP is private
+    """Check if the IP is a private IP."""
     return ip.startswith("10.") or ip.startswith("172.") or ip.startswith("192.168.")
 
 # Title of the app
@@ -47,27 +47,41 @@ if uploaded_file is not None:
             df["TimeDelta"] = df["Timestamp"].diff().fillna(0)  # Time differences
             df["Throughput"] = df["Size"] / df["TimeDelta"].replace(0, 1)  # Bytes per second
 
-        # Create plotly figure
-        fig = go.Figure()
-        
-        # Uplink trace
-        fig.add_trace(go.Scatter(x=uplink_df["Timestamp"], y=uplink_df["Throughput"],
-                                 mode='lines+markers', name='Uplink Throughput',
-                                 line=dict(color='blue')))
+        # Create plotly figures with borders
+        uplink_fig = go.Figure()
+        uplink_fig.add_trace(go.Scatter(x=uplink_df["Timestamp"], y=uplink_df["Throughput"],
+                                         mode='lines+markers', name='Uplink Throughput',
+                                         line=dict(color='blue')))
+        uplink_fig.update_layout(title="Uplink Throughput Over Time",
+                                  xaxis_title="Time",
+                                  yaxis_title="Throughput (bytes/sec)",
+                                  plot_bgcolor='rgba(0,0,0,0)',
+                                  paper_bgcolor='rgba(0,0,0,0)',
+                                  margin=dict(l=40, r=40, t=40, b=40),
+                                  width=700, height=400)
+        uplink_fig.update_xaxes(showgrid=True, gridcolor='lightgray')
+        uplink_fig.update_yaxes(showgrid=True, gridcolor='lightgray')
 
-        # Downlink trace
-        fig.add_trace(go.Scatter(x=downlink_df["Timestamp"], y=downlink_df["Throughput"],
-                                 mode='lines+markers', name='Downlink Throughput',
-                                 line=dict(color='orange')))
+        downlink_fig = go.Figure()
+        downlink_fig.add_trace(go.Scatter(x=downlink_df["Timestamp"], y=downlink_df["Throughput"],
+                                           mode='lines+markers', name='Downlink Throughput',
+                                           line=dict(color='orange')))
+        downlink_fig.update_layout(title="Downlink Throughput Over Time",
+                                    xaxis_title="Time",
+                                    yaxis_title="Throughput (bytes/sec)",
+                                    plot_bgcolor='rgba(0,0,0,0)',
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    margin=dict(l=40, r=40, t=40, b=40),
+                                    width=700, height=400)
+        downlink_fig.update_xaxes(showgrid=True, gridcolor='lightgray')
+        downlink_fig.update_yaxes(showgrid=True, gridcolor='lightgray')
 
-        # Update layout
-        fig.update_layout(title="TCP Uplink and Downlink Throughput Over Time",
-                          xaxis_title="Time",
-                          yaxis_title="Throughput (bytes/sec)",
-                          hovermode='x unified')
+        # Display the figures with borders
+        st.subheader("Uplink Throughput")
+        st.plotly_chart(uplink_fig, use_container_width=True)
 
-        # Show the plot in Streamlit
-        st.plotly_chart(fig)
+        st.subheader("Downlink Throughput")
+        st.plotly_chart(downlink_fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
