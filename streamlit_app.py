@@ -1,6 +1,5 @@
 import streamlit as st
-import pyshark
-import tempfile
+from scapy.all import rdpcap
 
 # Title of the app
 st.title("PCAP File Protocol Analyzer")
@@ -15,23 +14,18 @@ if uploaded_file is not None:
     st.write(f"Size: {file_size / 1024:.2f} KB")
     st.write(f"Size: {file_size / (1024 * 1024):.2f} MB")
 
-    # Use a temporary file to analyze the PCAP
-    with tempfile.NamedTemporaryFile(delete=True) as temp_file:
-        temp_file.write(uploaded_file.getbuffer())
-        temp_file.flush()  # Ensure data is written
+    # Read the PCAP file using Scapy
+    try:
+        packets = rdpcap(uploaded_file)
 
-        # Analyze the protocols
-        try:
-            cap = pyshark.FileCapture(temp_file.name)
-            protocols = set()
-            
-            # Extract protocols from the packets
-            for packet in cap:
-                if hasattr(packet, 'highest_layer'):
-                    protocols.add(packet.highest_layer)
+        # Extract protocols from the packets
+        protocols = set()
+        for packet in packets:
+            if hasattr(packet, 'proto'):
+                protocols.add(packet.name)
 
-            st.write("Protocols found in the PCAP file:")
-            st.write(", ".join(protocols))
-        
-        except Exception as e:
-            st.error(f"An error occurred while analyzing the PCAP file: {e}")
+        st.write("Protocols found in the PCAP file:")
+        st.write(", ".join(protocols) if protocols else "No protocols found.")
+    
+    except Exception as e:
+        st.error(f"An error occurred while analyzing the PCAP file: {e}")
