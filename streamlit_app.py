@@ -1,37 +1,44 @@
 import streamlit as st
-from scapy.all import rdpcap
+from scapy.all import rdpcap, TCP
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Title of the app
-st.title("PCAP File Protocol Analyzer")
+st.title("TCP Throughput Analyzer")
 
 # File uploader for PCAP files
 uploaded_file = st.file_uploader("Choose a PCAP file", type=["pcap", "pcapng"])
 
-protocol_filter = st.selectbox("Select Protocol to Filter", ["All", "mDNS", "IGMP", "LLMNR"])
-
 if uploaded_file is not None:
-    # Get the size of the uploaded file
-    file_size = uploaded_file.size
-    st.write(f"Size of the uploaded PCAP file: {file_size} bytes")
-    st.write(f"Size: {file_size / 1024:.2f} KB")
-    st.write(f"Size: {file_size / (1024 * 1024):.2f} MB")
-
     # Read the PCAP file using Scapy
     try:
         packets = rdpcap(uploaded_file)
 
-        # Extract protocols and details from the packets
-        filtered_details = []
+        # Filter TCP packets and extract timestamps and sizes
+        tcp_data = []
         for packet in packets:
-            if protocol_filter == "All" or (protocol_filter in str(packet)):
-                filtered_details.append(packet.summary())
+            if TCP in packet:
+                timestamp = packet.time
+                size = len(packet)
+                tcp_data.append((timestamp, size))
 
-        st.write("Filtered Packet Details:")
-        if filtered_details:
-            for detail in filtered_details:
-                st.write(detail)
-        else:
-            st.write("No packets found for the selected protocol.")
-    
+        # Create a DataFrame from the collected TCP data
+        df = pd.DataFrame(tcp_data, columns=["Timestamp", "Size"])
+        df["TimeDelta"] = df["Timestamp"].diff().fillna(0)  # Time differences
+        df["Throughput"] = df["Size"] / df["TimeDelta"].replace(0, 1)  # Bytes per second
+
+        # Plotting
+        plt.figure(figsize=(12, 6))
+        plt.plot(df["Timestamp"], df["Throughput"], label='TCP Throughput', color='blue')
+        plt.xlabel("Time")
+        plt.ylabel("Throughput (bytes/sec)")
+        plt.title("TCP Throughput Over Time")
+        plt.xticks(rotation=45)
+        plt.grid()
+        plt.legend()
+
+        # Show the plot in Streamlit
+        st.pyplot(plt)
+
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
