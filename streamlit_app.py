@@ -7,6 +7,8 @@ st.title("PCAP File Protocol Analyzer")
 # File uploader for PCAP files
 uploaded_file = st.file_uploader("Choose a PCAP file", type=["pcap", "pcapng"])
 
+protocol_filter = st.selectbox("Select Protocol to Filter", ["All", "mDNS", "IGMP", "LLMNR"])
+
 if uploaded_file is not None:
     # Get the size of the uploaded file
     file_size = uploaded_file.size
@@ -19,22 +21,17 @@ if uploaded_file is not None:
         packets = rdpcap(uploaded_file)
 
         # Extract protocols and details from the packets
-        protocols = set()
-        packet_details = []
-
+        filtered_details = []
         for packet in packets:
-            if hasattr(packet, 'name'):
-                protocols.add(packet.name)
-                packet_details.append(f"{packet.summary()} - {packet.show()}")  # Detailed packet info
+            if protocol_filter == "All" or (protocol_filter in str(packet)):
+                filtered_details.append(packet.summary())
 
-        st.write("Protocols found in the PCAP file:")
-        st.write(", ".join(protocols) if protocols else "No protocols found.")
-        
-        # Display packet details if available
-        if packet_details:
-            st.write("Packet Details:")
-            for detail in packet_details:
+        st.write("Filtered Packet Details:")
+        if filtered_details:
+            for detail in filtered_details:
                 st.write(detail)
+        else:
+            st.write("No packets found for the selected protocol.")
     
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
