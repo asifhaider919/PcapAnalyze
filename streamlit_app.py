@@ -1,7 +1,12 @@
 import streamlit as st
-from scapy.all import rdpcap, TCP
+from scapy.all import rdpcap, TCP, IP
 import pandas as pd
 import plotly.graph_objects as go
+import socket
+
+def is_private_ip(ip):
+    # Function to check if an IP is private
+    return ip.startswith("10.") or ip.startswith("172.") or ip.startswith("192.168.")
 
 # Title of the app
 st.title("TCP Throughput Analyzer")
@@ -14,22 +19,23 @@ if uploaded_file is not None:
     try:
         packets = rdpcap(uploaded_file)
 
-        # Define your local IP address (change this as needed)
-        local_ip = st.text_input("Enter your local IP address:", "192.168.1.2")  # Example IP
+        # Get local IP address dynamically
+        local_ip = socket.gethostbyname(socket.gethostname())
+        st.write(f"Detected local IP address: {local_ip}")
 
         # Filter TCP packets and extract timestamps and sizes for uplink and downlink
         uplink_data = []
         downlink_data = []
         
         for packet in packets:
-            if TCP in packet:
+            if TCP in packet and IP in packet:
                 timestamp = packet.time
                 size = len(packet)
 
                 # Determine if it's uplink or downlink
-                if packet[IP].src == local_ip:
+                if packet[IP].src == local_ip or not is_private_ip(packet[IP].dst):
                     uplink_data.append((timestamp, size))  # Outgoing
-                elif packet[IP].dst == local_ip:
+                elif packet[IP].dst == local_ip or not is_private_ip(packet[IP].src):
                     downlink_data.append((timestamp, size))  # Incoming
 
         # Create DataFrames from the collected TCP data
