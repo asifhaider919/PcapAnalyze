@@ -87,7 +87,7 @@ if uploaded_file is not None:
         downlink_fig.update_xaxes(showgrid=True, gridcolor='lightgray')
         downlink_fig.update_yaxes(showgrid=True, gridcolor='lightgray')
 
-        # Display the figures with borders
+        # Display the figures
         st.subheader("Uplink Throughput")
         st.plotly_chart(uplink_fig, use_container_width=True)
 
@@ -118,4 +118,18 @@ if uploaded_file is not None:
         summary_df = pd.DataFrame(summary_data)
 
         # Display summary table
-        st.sub
+        st.subheader("Detailed Summary Statistics")
+        st.table(summary_df)
+
+        # Optional: Display packet details with sequence
+        uplink_df["Sequence"] = range(1, packets_sent + 1)
+        downlink_df["Sequence"] = range(1, packets_received + 1)
+        
+        st.subheader("Uplink Packet Details")
+        st.dataframe(uplink_df[["Sequence", "Source IP", "Destination IP", "Size"]])
+
+        st.subheader("Downlink Packet Details")
+        st.dataframe(downlink_df[["Sequence", "Source IP", "Destination IP", "Size"]])
+
+    except Exception as e:
+        st.error(f"An error occurred while analyzing the PCAP file: {e}")
