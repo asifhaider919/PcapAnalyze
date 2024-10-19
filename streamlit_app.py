@@ -1,7 +1,7 @@
 import streamlit as st
 from scapy.all import rdpcap, TCP
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Title of the app
 st.title("TCP Throughput Analyzer")
@@ -27,18 +27,18 @@ if uploaded_file is not None:
         df["TimeDelta"] = df["Timestamp"].diff().fillna(0)  # Time differences
         df["Throughput"] = df["Size"] / df["TimeDelta"].replace(0, 1)  # Bytes per second
 
-        # Plotting
-        plt.figure(figsize=(12, 6))
-        plt.plot(df["Timestamp"], df["Throughput"], label='TCP Throughput', color='blue')
-        plt.xlabel("Time")
-        plt.ylabel("Throughput (bytes/sec)")
-        plt.title("TCP Throughput Over Time")
-        plt.xticks(rotation=45)
-        plt.grid()
-        plt.legend()
+        # Create a plotly figure
+        fig = px.line(df, x="Timestamp", y="Throughput", 
+                      labels={"Throughput": "Throughput (bytes/sec)"},
+                      title="TCP Throughput Over Time")
+        
+        # Update layout for better visualization
+        fig.update_traces(mode='lines+markers')
+        fig.update_layout(xaxis_title="Time", yaxis_title="Throughput (bytes/sec)", 
+                          hovermode='x unified')
 
         # Show the plot in Streamlit
-        st.pyplot(plt)
+        st.plotly_chart(fig)
 
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
