@@ -1,7 +1,7 @@
 import streamlit as st
 from scapy.all import rdpcap, TCP
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 # Title of the app
 st.title("TCP Throughput Analyzer")
@@ -14,27 +14,50 @@ if uploaded_file is not None:
     try:
         packets = rdpcap(uploaded_file)
 
-        # Filter TCP packets and extract timestamps and sizes
-        tcp_data = []
+        # Define your local IP address (change this as needed)
+        local_ip = st.text_input("Enter your local IP address:", "192.168.1.2")  # Example IP
+
+        # Filter TCP packets and extract timestamps and sizes for uplink and downlink
+        uplink_data = []
+        downlink_data = []
+        
         for packet in packets:
             if TCP in packet:
                 timestamp = packet.time
                 size = len(packet)
-                tcp_data.append((timestamp, size))
 
-        # Create a DataFrame from the collected TCP data
-        df = pd.DataFrame(tcp_data, columns=["Timestamp", "Size"])
-        df["TimeDelta"] = df["Timestamp"].diff().fillna(0)  # Time differences
-        df["Throughput"] = df["Size"] / df["TimeDelta"].replace(0, 1)  # Bytes per second
+                # Determine if it's uplink or downlink
+                if packet[IP].src == local_ip:
+                    uplink_data.append((timestamp, size))  # Outgoing
+                elif packet[IP].dst == local_ip:
+                    downlink_data.append((timestamp, size))  # Incoming
 
-        # Create a plotly figure
-        fig = px.line(df, x="Timestamp", y="Throughput", 
-                      labels={"Throughput": "Throughput (bytes/sec)"},
-                      title="TCP Throughput Over Time")
+        # Create DataFrames from the collected TCP data
+        uplink_df = pd.DataFrame(uplink_data, columns=["Timestamp", "Size"])
+        downlink_df = pd.DataFrame(downlink_data, columns=["Timestamp", "Size"])
+
+        # Calculate throughput
+        for df in [uplink_df, downlink_df]:
+            df["TimeDelta"] = df["Timestamp"].diff().fillna(0)  # Time differences
+            df["Throughput"] = df["Size"] / df["TimeDelta"].replace(0, 1)  # Bytes per second
+
+        # Create plotly figure
+        fig = go.Figure()
         
-        # Update layout for better visualization
-        fig.update_traces(mode='lines+markers')
-        fig.update_layout(xaxis_title="Time", yaxis_title="Throughput (bytes/sec)", 
+        # Uplink trace
+        fig.add_trace(go.Scatter(x=uplink_df["Timestamp"], y=uplink_df["Throughput"],
+                                 mode='lines+markers', name='Uplink Throughput',
+                                 line=dict(color='blue')))
+
+        # Downlink trace
+        fig.add_trace(go.Scatter(x=downlink_df["Timestamp"], y=downlink_df["Throughput"],
+                                 mode='lines+markers', name='Downlink Throughput',
+                                 line=dict(color='orange')))
+
+        # Update layout
+        fig.update_layout(title="TCP Uplink and Downlink Throughput Over Time",
+                          xaxis_title="Time",
+                          yaxis_title="Throughput (bytes/sec)",
                           hovermode='x unified')
 
         # Show the plot in Streamlit
