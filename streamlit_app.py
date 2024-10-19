@@ -121,12 +121,16 @@ if uploaded_file is not None:
         uplink_df["Sequence"] = range(1, packets_sent + 1)
         downlink_df["Sequence"] = range(1, packets_received + 1)
         
+        # Create detailed packet information
+        uplink_df["Total Bytes"] = uplink_df["Size"]
+        downlink_df["Total Bytes"] = downlink_df["Size"]
+
         st.subheader("Uplink Packet Details")
-        uplink_details = uplink_df[["Sequence", "Source IP", "Destination IP", "Size"]]
+        uplink_details = uplink_df[["Sequence", "Source IP", "Destination IP", "Size", "Total Bytes"]]
         st.dataframe(uplink_details)
 
         st.subheader("Downlink Packet Details")
-        downlink_details = downlink_df[["Sequence", "Source IP", "Destination IP", "Size"]]
+        downlink_details = downlink_df[["Sequence", "Source IP", "Destination IP", "Size", "Total Bytes"]]
         st.dataframe(downlink_details)
 
     except Exception as e:
