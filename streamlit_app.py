@@ -117,7 +117,7 @@ if uploaded_file is not None:
         st.subheader("Detailed Summary Statistics")
         st.table(summary_df)
 
-        # Optional: Display packet details with sequence
+        # Add Sequence column to DataFrames
         uplink_df["Sequence"] = range(1, packets_sent + 1)
         downlink_df["Sequence"] = range(1, packets_received + 1)
         
@@ -125,17 +125,21 @@ if uploaded_file is not None:
         uplink_df["Total Bytes"] = uplink_df["Size"]
         downlink_df["Total Bytes"] = downlink_df["Size"]
         
-        # Additional metrics for display
+        # Create a final display DataFrame
         uplink_df["Packets Sent"] = packets_sent
         uplink_df["Packets Received"] = packets_received
-        uplink_df["Packet Loss"] = packet_loss
+        uplink_df["Packet Loss (%)"] = packet_loss
+
+        downlink_df["Packets Sent"] = packets_sent
+        downlink_df["Packets Received"] = packets_received
+        downlink_df["Packet Loss (%)"] = packet_loss
 
         st.subheader("Uplink Packet Details")
-        uplink_details = uplink_df[["Sequence", "Source IP", "Destination IP", "Total Bytes", "Packets Sent", "Packets Received", "Packet Loss"]]
+        uplink_details = uplink_df[["Sequence", "Source IP", "Destination IP", "Total Bytes", "Packets Sent", "Packets Received", "Packet Loss (%)"]]
         st.dataframe(uplink_details)
 
         st.subheader("Downlink Packet Details")
-        downlink_details = downlink_df[["Sequence", "Source IP", "Destination IP", "Total Bytes", "Packets Sent", "Packets Received", "Packet Loss"]]
+        downlink_details = downlink_df[["Sequence", "Source IP", "Destination IP", "Total Bytes", "Packets Sent", "Packets Received", "Packet Loss (%)"]]
         st.dataframe(downlink_details)
 
     except Exception as e:
