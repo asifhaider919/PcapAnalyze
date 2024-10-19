@@ -18,14 +18,23 @@ if uploaded_file is not None:
     try:
         packets = rdpcap(uploaded_file)
 
-        # Extract protocols from the packets
+        # Extract protocols and details from the packets
         protocols = set()
+        packet_details = []
+
         for packet in packets:
-            if hasattr(packet, 'proto'):
+            if hasattr(packet, 'name'):
                 protocols.add(packet.name)
+                packet_details.append(str(packet.summary()))  # Add a summary of the packet
 
         st.write("Protocols found in the PCAP file:")
         st.write(", ".join(protocols) if protocols else "No protocols found.")
+        
+        # Display packet details if available
+        if packet_details:
+            st.write("Packet Details:")
+            for detail in packet_details:
+                st.write(detail)
     
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
