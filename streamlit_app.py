@@ -47,6 +47,15 @@ if uploaded_file is not None:
             df["TimeDelta"] = df["Timestamp"].diff().fillna(0)  # Time differences
             df["Throughput"] = df["Size"] / df["TimeDelta"].replace(0, 1)  # Bytes per second
 
+        # Calculate totals and losses
+        total_uplink_bytes = uplink_df["Size"].sum()
+        total_downlink_bytes = downlink_df["Size"].sum()
+        packets_sent = len(uplink_df)
+        packets_received = len(downlink_df)
+        
+        # Assume packet loss as a percentage of total packets sent vs received (simplistic approach)
+        packet_loss = (packets_sent - packets_received) / packets_sent * 100 if packets_sent > 0 else 0
+
         # Create plotly figures with borders
         uplink_fig = go.Figure()
         uplink_fig.add_trace(go.Scatter(x=uplink_df["Timestamp"], y=uplink_df["Throughput"],
@@ -82,6 +91,17 @@ if uploaded_file is not None:
 
         st.subheader("Downlink Throughput")
         st.plotly_chart(downlink_fig, use_container_width=True)
+
+        # Create summary table
+        summary_data = {
+            "Metric": ["Total Bytes Sent", "Total Bytes Received", "Packets Sent", "Packets Received", "Packet Loss (%)"],
+            "Value": [total_uplink_bytes, total_downlink_bytes, packets_sent, packets_received, packet_loss]
+        }
+        summary_df = pd.DataFrame(summary_data)
+
+        # Display summary table
+        st.subheader("Summary Statistics")
+        st.table(summary_df)
 
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
