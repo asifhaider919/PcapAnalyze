@@ -23,7 +23,7 @@ if uploaded_file is not None:
         local_ip = socket.gethostbyname(socket.gethostname())
         st.write(f"Detected local IP address: {local_ip}")
 
-        # Filter TCP packets and extract timestamps and sizes for uplink and downlink
+        # Initialize data holders
         uplink_data = []
         downlink_data = []
         
@@ -31,16 +31,18 @@ if uploaded_file is not None:
             if TCP in packet and IP in packet:
                 timestamp = packet.time
                 size = len(packet)
+                src_ip = packet[IP].src
+                dst_ip = packet[IP].dst
 
                 # Determine if it's uplink or downlink
-                if packet[IP].src == local_ip or not is_private_ip(packet[IP].dst):
-                    uplink_data.append((timestamp, size))  # Outgoing
-                elif packet[IP].dst == local_ip or not is_private_ip(packet[IP].src):
-                    downlink_data.append((timestamp, size))  # Incoming
+                if src_ip == local_ip or not is_private_ip(dst_ip):
+                    uplink_data.append((src_ip, dst_ip, timestamp, size))  # Outgoing
+                elif dst_ip == local_ip or not is_private_ip(src_ip):
+                    downlink_data.append((src_ip, dst_ip, timestamp, size))  # Incoming
 
         # Create DataFrames from the collected TCP data
-        uplink_df = pd.DataFrame(uplink_data, columns=["Timestamp", "Size"])
-        downlink_df = pd.DataFrame(downlink_data, columns=["Timestamp", "Size"])
+        uplink_df = pd.DataFrame(uplink_data, columns=["Source IP", "Destination IP", "Timestamp", "Size"])
+        downlink_df = pd.DataFrame(downlink_data, columns=["Source IP", "Destination IP", "Timestamp", "Size"])
 
         # Calculate throughput
         for df in [uplink_df, downlink_df]:
@@ -53,7 +55,7 @@ if uploaded_file is not None:
         packets_sent = len(uplink_df)
         packets_received = len(downlink_df)
         
-        # Assume packet loss as a percentage of total packets sent vs received (simplistic approach)
+        # Packet loss as a percentage of total packets sent vs received
         packet_loss = (packets_sent - packets_received) / packets_sent * 100 if packets_sent > 0 else 0
 
         # Create plotly figures with borders
@@ -92,16 +94,28 @@ if uploaded_file is not None:
         st.subheader("Downlink Throughput")
         st.plotly_chart(downlink_fig, use_container_width=True)
 
-        # Create summary table
+        # Create a detailed summary table
         summary_data = {
-            "Metric": ["Total Bytes Sent", "Total Bytes Received", "Packets Sent", "Packets Received", "Packet Loss (%)"],
-            "Value": [total_uplink_bytes, total_downlink_bytes, packets_sent, packets_received, packet_loss]
+            "Metric": [
+                "Source IP", 
+                "Destination IP", 
+                "Total Bytes Sent", 
+                "Total Bytes Received", 
+                "Packets Sent", 
+                "Packets Received", 
+                "Packet Loss (%)"
+            ],
+            "Value": [
+                uplink_df["Source IP"].iloc[0] if not uplink_df.empty else "N/A",
+                uplink_df["Destination IP"].iloc[0] if not uplink_df.empty else "N/A",
+                total_uplink_bytes,
+                total_downlink_bytes,
+                packets_sent,
+                packets_received,
+                packet_loss
+            ]
         }
         summary_df = pd.DataFrame(summary_data)
 
         # Display summary table
-        st.subheader("Summary Statistics")
-        st.table(summary_df)
-
-    except Exception as e:
-        st.error(f"An error occurred while analyzing the PCAP file: {e}")
+        st.sub
