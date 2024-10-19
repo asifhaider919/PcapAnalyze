@@ -25,7 +25,7 @@ if uploaded_file is not None:
         for packet in packets:
             if hasattr(packet, 'name'):
                 protocols.add(packet.name)
-                packet_details.append(str(packet.summary()))  # Add a summary of the packet
+                packet_details.append(f"{packet.summary()} - {packet.show()}")  # Detailed packet info
 
         st.write("Protocols found in the PCAP file:")
         st.write(", ".join(protocols) if protocols else "No protocols found.")
