@@ -7,3 +7,4 @@ streamlit-folium
 openpyxl
 matplotlib
 plotly
+pyshark
