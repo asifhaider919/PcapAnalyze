@@ -97,8 +97,6 @@ if uploaded_file is not None:
         # Create a detailed summary table
         summary_data = {
             "Metric": [
-                "Source IP", 
-                "Destination IP", 
                 "Total Bytes Sent", 
                 "Total Bytes Received", 
                 "Packets Sent", 
@@ -106,8 +104,6 @@ if uploaded_file is not None:
                 "Packet Loss (%)"
             ],
             "Value": [
-                uplink_df["Source IP"].iloc[0] if not uplink_df.empty else "N/A",
-                uplink_df["Destination IP"].iloc[0] if not uplink_df.empty else "N/A",
                 total_uplink_bytes,
                 total_downlink_bytes,
                 packets_sent,
@@ -126,10 +122,12 @@ if uploaded_file is not None:
         downlink_df["Sequence"] = range(1, packets_received + 1)
         
         st.subheader("Uplink Packet Details")
-        st.dataframe(uplink_df[["Sequence", "Source IP", "Destination IP", "Size"]])
+        uplink_details = uplink_df[["Sequence", "Source IP", "Destination IP", "Size"]]
+        st.dataframe(uplink_details)
 
         st.subheader("Downlink Packet Details")
-        st.dataframe(downlink_df[["Sequence", "Source IP", "Destination IP", "Size"]])
+        downlink_details = downlink_df[["Sequence", "Source IP", "Destination IP", "Size"]]
+        st.dataframe(downlink_details)
 
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
