@@ -32,25 +32,28 @@ if uploaded_file is not None:
                 dst_ip = packet[IP].dst
                 seq_num = packet[TCP].seq
                 ack_num = packet[TCP].ack
+                is_ack = packet[TCP].flags & 0x10  # Check for ACK flag
 
                 # Check for sent packets
                 if src_ip == local_ip:
                     key = (src_ip, dst_ip)
-                    sent_packets.setdefault(key, []).append(seq_num)
+                    if key not in sent_packets:
+                        sent_packets[key] = {}
+                    sent_packets[key][seq_num] = True  # Mark this seq number as sent
 
                 # Check for ACK packets
-                if dst_ip == local_ip and packet[TCP].flags & 0x10:  # ACK flag
-                    ack_key = (dst_ip, src_ip)
-                    received_acks.setdefault(ack_key, []).append(ack_num)
+                if is_ack and dst_ip == local_ip:
+                    ack_key = (src_ip, dst_ip)
+                    if ack_key not in received_acks:
+                        received_acks[ack_key] = []
+                    received_acks[ack_key].append(ack_num)  # Track the ACK number
 
         # Create a summary DataFrame
         summary = []
         
         for key, seq_nums in sent_packets.items():
             src_ip, dst_ip = key
-            # Count total sent packets
-            packets_sent = len(seq_nums)
-            # Count ACKs received for these packets
+            packets_sent = len(seq_nums)  # Total sent packets
             acks_received = sum(1 for seq in seq_nums if seq + 1 in received_acks.get((dst_ip, src_ip), []))
             packet_loss = packets_sent - acks_received
             summary.append((src_ip, dst_ip, packets_sent, acks_received, packet_loss))
