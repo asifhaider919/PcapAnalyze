@@ -3,9 +3,9 @@ from scapy.all import rdpcap, TCP, IP
 import pandas as pd
 import socket
 
-def is_private_ip(ip):
-    """Check if the IP is a private IP."""
-    return ip.startswith("10.") or ip.startswith("172.") or ip.startswith("192.168.")
+def get_local_ip():
+    """Get the local IP address."""
+    return socket.gethostbyname(socket.gethostname())
 
 # Title of the app
 st.title("TCP Throughput Analyzer")
@@ -19,7 +19,7 @@ if uploaded_file is not None:
         packets = rdpcap(uploaded_file)
 
         # Get local IP address dynamically
-        local_ip = socket.gethostbyname(socket.gethostname())
+        local_ip = get_local_ip()
         st.write(f"Detected local IP address: {local_ip}")
 
         # Initialize data holders
@@ -33,6 +33,9 @@ if uploaded_file is not None:
                 seq_num = packet[TCP].seq
                 ack_num = packet[TCP].ack
                 is_ack = packet[TCP].flags & 0x10  # Check for ACK flag
+
+                # Debugging output
+                st.write(f"Packet: Src={src_ip}, Dst={dst_ip}, Seq={seq_num}, Ack={ack_num}, IsACK={is_ack}")
 
                 # Check for sent packets
                 if src_ip == local_ip:
