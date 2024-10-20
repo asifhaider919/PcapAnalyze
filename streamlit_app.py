@@ -1,7 +1,6 @@
 import streamlit as st
 from scapy.all import rdpcap, TCP, IP
 import pandas as pd
-import plotly.graph_objects as go
 import socket
 
 def is_private_ip(ip):
@@ -24,36 +23,44 @@ if uploaded_file is not None:
         st.write(f"Detected local IP address: {local_ip}")
 
         # Initialize data holders
-        uplink_data = []
-        downlink_data = []
-        
+        sent_packets = {}
+        received_acks = {}
+
         for packet in packets:
             if TCP in packet and IP in packet:
                 src_ip = packet[IP].src
                 dst_ip = packet[IP].dst
+                seq_num = packet[TCP].seq
+                ack_num = packet[TCP].ack
 
-                # Determine if it's uplink or downlink
-                if src_ip == local_ip or not is_private_ip(dst_ip):
-                    uplink_data.append((src_ip, dst_ip))  # Outgoing
-                elif dst_ip == local_ip or not is_private_ip(src_ip):
-                    downlink_data.append((src_ip, dst_ip))  # Incoming
+                # Check for sent packets
+                if src_ip == local_ip:
+                    key = (src_ip, dst_ip)
+                    sent_packets.setdefault(key, []).append(seq_num)
 
-        # Create DataFrames from the collected TCP data
-        uplink_df = pd.DataFrame(uplink_data, columns=["Source IP", "Destination IP"])
-        downlink_df = pd.DataFrame(downlink_data, columns=["Source IP", "Destination IP"])
+                # Check for ACK packets
+                if dst_ip == local_ip and packet[TCP].flags & 0x10:  # ACK flag
+                    ack_key = (dst_ip, src_ip)
+                    received_acks.setdefault(ack_key, []).append(ack_num)
 
-        # Group by Source and Destination to calculate totals
-        summary_uplink = uplink_df.groupby(["Source IP", "Destination IP"]).size().reset_index(name='Packets Sent')
-        summary_downlink = downlink_df.groupby(["Source IP", "Destination IP"]).size().reset_index(name='Packets Received')
+        # Create a summary DataFrame
+        summary = []
+        
+        for key, seq_nums in sent_packets.items():
+            src_ip, dst_ip = key
+            # Count total sent packets
+            packets_sent = len(seq_nums)
+            # Count ACKs received for these packets
+            acks_received = sum(1 for seq in seq_nums if seq + 1 in received_acks.get((dst_ip, src_ip), []))
+            packet_loss = packets_sent - acks_received
+            summary.append((src_ip, dst_ip, packets_sent, acks_received, packet_loss))
 
-        # Merge the summaries to get packet loss
-        summary = pd.merge(summary_uplink, summary_downlink, on=["Source IP", "Destination IP"], how='outer').fillna(0)
-        summary['Packet Loss'] = summary['Packets Sent'] - summary['Packets Received']
-        summary['Packet Loss'] = summary['Packet Loss'].apply(lambda x: max(0, x))  # Ensure no negative values
+        # Create a summary DataFrame
+        summary_df = pd.DataFrame(summary, columns=["Source IP", "Destination IP", "Packets Sent", "Packets Received", "Packet Loss"])
 
         # Display the summary table
         st.subheader("Packet Summary Between Source and Destination IPs")
-        st.dataframe(summary)
+        st.dataframe(summary_df)
 
     except Exception as e:
         st.error(f"An error occurred while analyzing the PCAP file: {e}")
