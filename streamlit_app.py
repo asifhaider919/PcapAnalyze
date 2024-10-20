@@ -26,6 +26,7 @@ if uploaded_file is not None:
         sent_packets = {}
         received_acks = {}
 
+        # Process each packet in the PCAP file
         for packet in packets:
             if TCP in packet and IP in packet:
                 src_ip = packet[IP].src
@@ -33,9 +34,6 @@ if uploaded_file is not None:
                 seq_num = packet[TCP].seq
                 ack_num = packet[TCP].ack
                 is_ack = packet[TCP].flags & 0x10  # Check for ACK flag
-
-                # Debugging output
-                st.write(f"Packet: Src={src_ip}, Dst={dst_ip}, Seq={seq_num}, Ack={ack_num}, IsACK={is_ack}")
 
                 # Check for sent packets
                 if src_ip == local_ip:
@@ -46,7 +44,7 @@ if uploaded_file is not None:
 
                 # Check for ACK packets
                 if is_ack and dst_ip == local_ip:
-                    ack_key = (src_ip, dst_ip)
+                    ack_key = (dst_ip, src_ip)
                     if ack_key not in received_acks:
                         received_acks[ack_key] = []
                     received_acks[ack_key].append(ack_num)  # Track the ACK number
